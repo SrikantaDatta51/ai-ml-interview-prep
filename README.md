@@ -450,6 +450,191 @@ For each box, briefly describe:
 
 ---
 
+### Worked Example — ML Search Relevance Architecture
+
+> This is the **most commonly asked** ML system design problem. Study it deeply.
+
+#### The Big Picture
+
+A search system has **two loops** that work together:
+
+```mermaid
+flowchart TB
+    subgraph ONLINE["🟢 ONLINE SERVING (real-time, user-facing)"]
+        direction LR
+        Q["① Query"] --> CR["② Candidate\nRetrieval"]
+        DI[("Document\nIndex")] --> CR
+        CR --> DS["③ Document\nScoring"]
+        DS --> F["④ Filtering"]
+        F --> RK["⑤ Ranker"]
+        RK --> RR["⑥ Ranked\nResults → User"]
+    end
+
+    subgraph OFFLINE["🔵 OFFLINE TRAINING (batch, background)"]
+        direction LR
+        UI["⑦ User\nInteractions"] --> TDG["⑧ Training Data\nGenerator"]
+        TDG --> TD[("Training\nData")]
+        TD --> MT["⑨ Model\nTraining"]
+        MT --> MP["⑩ Model\nPublishing"]
+        MP --> MR["⑪ Model\nRepository"]
+    end
+
+    subgraph INDEXING["🟡 INDEXING PIPELINE"]
+        DIP["⑫ Document\nIndexing Pipeline"] --> DI
+    end
+
+    MR --> RK
+    MR --> MON["📊 Monitoring"]
+    MON -.-> MT
+    RR --> UI
+    TDG --> FUR["Features Used\nfor Ranking"]
+    FUR --> RK
+
+    style Q fill:#059669,color:#fff
+    style RR fill:#059669,color:#fff
+    style CR fill:#d97706,color:#fff
+    style DS fill:#d97706,color:#fff
+    style F fill:#d97706,color:#fff
+    style RK fill:#d97706,color:#fff
+    style MT fill:#2563eb,color:#fff
+    style MR fill:#2563eb,color:#fff
+    style DIP fill:#eab308,color:#000
+    style DI fill:#6366f1,color:#fff
+    style MON fill:#7c3aed,color:#fff
+```
+
+#### Component-by-Component Walkthrough
+
+##### 🟢 Online Serving Path (what happens when a user searches)
+
+| Step | Component | What it does | Latency budget | Real-world example |
+|------|-----------|-------------|----------------|-------------------|
+| **①** | **Query** | User types a search query | 0 ms | User types "wireless headphones under $50" |
+| **②** | **Candidate Retrieval** | Fetches ~1000 potentially relevant documents from the index | 10-50 ms | BM25 keyword match + ANN embedding search → 1000 candidates |
+| **③** | **Document Scoring** | Lightweight scoring model ranks candidates | 20-50 ms | Two-tower model computes query-document similarity scores |
+| **④** | **Filtering** | Removes disqualified items (out of stock, policy violations, geo-restricted) | 5-10 ms | Remove items not available in user's region |
+| **⑤** | **Ranker** | Deep ranking model re-ranks top candidates using rich features | 30-100 ms | Cross-encoder transformer with 50+ features → final top 20 |
+| **⑥** | **Ranked Results** | Final ordered list presented to the user | 5 ms | Show top 20 results with product cards |
+
+**Total latency budget**: < 200ms end-to-end
+
+```mermaid
+flowchart LR
+    A["User Query\n'wireless headphones'"] --> B["Candidate Retrieval\n1M docs → 1000 candidates\n📏 Recall@1000"]
+    B --> C["Document Scoring\n1000 → 200\n📏 AUC"]
+    C --> D["Filtering\n200 → 150\n📏 Compliance rate"]
+    D --> E["Ranker\n150 → 20\n📏 NDCG@10"]
+    E --> F["User sees\ntop 20 results\n📏 Click, purchase"]
+    style A fill:#059669,color:#fff
+    style B fill:#2563eb,color:#fff
+    style C fill:#0d9488,color:#fff
+    style D fill:#64748b,color:#fff
+    style E fill:#d97706,color:#fff
+    style F fill:#dc2626,color:#fff
+```
+
+> **Key insight**: Each stage reduces the candidate set. Early stages optimize for **recall** (don't miss relevant items), later stages optimize for **precision/NDCG** (put the best items first).
+
+##### 🔵 Offline Training Path (how the model gets better over time)
+
+| Step | Component | What it does | Frequency | Real-world example |
+|------|-----------|-------------|-----------|-------------------|
+| **⑦** | **User Interactions** | Collects clicks, purchases, dwell time, skips from real users | Continuous | User clicked result #3, skipped #1 and #2, purchased #3 |
+| **⑧** | **Training Data Generator** | Joins user interactions with features to create labeled training examples | Daily batch | For each query-document pair: features + label (clicked=1, skipped=0) |
+| **⑨** | **Model Training** | Trains new ranking model on the labeled data | Daily/weekly | LambdaRank on 30 days of click data, validated on last 3 days |
+| **⑩** | **Model Publishing** | Validates model offline, packages for deployment | After training | Offline NDCG@10 improved by 2% → approved for publishing |
+| **⑪** | **Model Repository** | Stores versioned models, serves to the online ranker | Always available | Model v47 serving in prod, v48 in shadow mode |
+
+```mermaid
+flowchart LR
+    A["User clicks,\nskips, purchases"] --> B["Training Data\nGenerator\n(join features + labels)"]
+    B --> C[("Training\nData\n(30 days)")]
+    C --> D["Model Training\n(LambdaRank,\ncross-encoder)"]
+    D --> E["Offline Eval\nNDCG@10 improved?"]
+    E -->|Yes| F["Model Publishing\n→ Repository"]
+    E -->|No| D
+    F --> G["Shadow Test\nthen A/B Test"]
+    G -->|Win| H["Promote to\nProduction"]
+    style A fill:#059669,color:#fff
+    style D fill:#2563eb,color:#fff
+    style E fill:#d97706,color:#fff
+    style F fill:#0d9488,color:#fff
+    style H fill:#059669,color:#fff
+```
+
+##### 🟡 Document Indexing Pipeline
+
+| Step | Component | What it does | Example |
+|------|-----------|-------------|---------|
+| **⑫** | **Document Indexing Pipeline** | Processes raw documents into searchable format | Crawl product catalog → extract title, description, images → generate embeddings → write to index |
+
+```mermaid
+flowchart LR
+    A["Raw Documents\n(catalog, web pages)"] --> B["Extract & Clean\n(title, description,\ncategory, price)"]
+    B --> C["Generate Embeddings\n(BERT, sentence-transformer)"]
+    C --> D["Build Index\n(inverted index +\nANN vector index)"]
+    D --> E[("Document Index\n(searchable)")]
+    style A fill:#eab308,color:#000
+    style C fill:#2563eb,color:#fff
+    style E fill:#6366f1,color:#fff
+```
+
+##### 📊 Monitoring — Closing the Loop
+
+| What to monitor | Metric | Alert threshold | Action |
+|----------------|--------|-----------------|--------|
+| **Result quality** | NDCG@10 from click data | > 5% drop vs baseline | Investigate query segments |
+| **Engagement** | CTR on top 3 results | > 10% drop | Check for indexing issues |
+| **Zero results** | % queries with 0 results | > 2% | Expand retrieval, check index |
+| **Latency** | p99 serving latency | > 200ms | Scale infrastructure, simplify model |
+| **Model freshness** | Days since last retrain | > 7 days | Trigger retraining pipeline |
+
+#### How Each Metric Maps to the Architecture
+
+```mermaid
+flowchart TD
+    subgraph "Component Metrics (Offline)"
+        M1["Recall@1000\n(Candidate Retrieval)"]
+        M2["AUC\n(Scoring Model)"]
+        M3["NDCG@10\n(Ranker)"]
+    end
+    subgraph "System Metrics (Online)"
+        S1["Search Success Rate"]
+        S2["CTR on top 3"]
+        S3["Zero-result Rate"]
+    end
+    subgraph "Business Metrics"
+        B1["Revenue per Search"]
+        B2["Conversion Rate"]
+    end
+    M1 --> S1
+    M2 --> S1
+    M3 --> S2
+    S1 --> B1
+    S2 --> B2
+    S3 --> B1
+    style M1 fill:#2563eb,color:#fff
+    style M2 fill:#2563eb,color:#fff
+    style M3 fill:#2563eb,color:#fff
+    style S1 fill:#d97706,color:#fff
+    style S2 fill:#d97706,color:#fff
+    style S3 fill:#d97706,color:#fff
+    style B1 fill:#dc2626,color:#fff
+    style B2 fill:#dc2626,color:#fff
+```
+
+#### Interview Pro Tips for Search Relevance
+
+1. **Always draw the two loops** — online serving + offline training
+2. **Start with retrieval** — "How do we narrow 1M docs to 1000?" → BM25 + ANN
+3. **Explain the funnel** — 1M → 1000 → 200 → 20 with decreasing latency budget
+4. **Justify the ranker** — "Why not just use the scoring model?" → cross-encoder is too slow for 1000 docs, fast enough for 200
+5. **The feedback loop is critical** — user clicks become tomorrow's training data
+6. **Cold-start** — what happens for new documents with no click history? → use content features
+7. **Position bias** — users click top results regardless of quality → use position-debiased training
+
+---
+
 ### Step 4 — Offline Model Building
 
 **Goal**: For each component, propose at a high level how you would build the model end-to-end.

@@ -444,6 +444,76 @@ mindmap
 
 ---
 
+## Search Relevance Architecture
+
+```mermaid
+mindmap
+  root((Search Relevance\nArchitecture))
+    Online Serving Path
+      Query arrives from user
+      Candidate Retrieval
+        BM25 keyword match
+        ANN embedding search
+        1M docs to 1000 candidates
+        Metric: Recall@1000
+        Latency: 10-50ms
+      Document Scoring
+        Two-tower model
+        1000 to 200
+        Metric: AUC
+        Latency: 20-50ms
+      Filtering
+        Out of stock removal
+        Policy violations
+        Geo-restrictions
+        Metric: Compliance rate
+      Ranker
+        Cross-encoder transformer
+        50+ features
+        200 to 20
+        Metric: NDCG@10
+        Latency: 30-100ms
+      Ranked Results to User
+    Offline Training Path
+      User Interactions
+        Clicks
+        Purchases
+        Dwell time
+        Skips
+      Training Data Generator
+        Join features with labels
+        Daily batch job
+      Model Training
+        LambdaRank
+        Cross-encoder
+        30 days of data
+      Model Publishing
+        Offline eval gate
+        NDCG@10 must improve
+      Model Repository
+        Versioned models
+        Shadow mode testing
+    Document Indexing
+      Crawl product catalog
+      Extract features
+      Generate embeddings
+      Build inverted index + ANN index
+    Monitoring
+      NDCG@10 from clicks
+      CTR on top 3
+      Zero-result rate under 2%
+      p99 latency under 200ms
+      Model freshness under 7 days
+    Key Interview Points
+      Draw both loops first
+      Explain the funnel 1M to 1000 to 200 to 20
+      Justify two-stage ranking
+      Discuss cold-start for new docs
+      Address position bias in training
+```
+
+---
+
 ## Metrics Explainer — What Each Metric Actually Means
 
 > If you only read one section, read this. Every metric explained in plain English with real-world analogies.
