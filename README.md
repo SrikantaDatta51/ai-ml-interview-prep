@@ -80,12 +80,12 @@ You give the model data **without labels**. It finds hidden structure.
 
 An **agent** takes actions in an **environment**, gets **rewards or penalties**, and learns the best strategy.
 
-```
- ┌─────────┐   action   ┌─────────────┐
- │  Agent   │──────────►│ Environment  │
- │ (learner)│◄──────────│ (world)      │
- └─────────┘  reward +  └─────────────┘
-              new state
+```mermaid
+flowchart LR
+    A["Agent\n(learner)"] -->|action| B["Environment\n(world)"]
+    B -->|"reward +\nnew state"| A
+    style A fill:#2563eb,color:#fff
+    style B fill:#059669,color:#fff
 ```
 
 **Examples**: Game AI (AlphaGo, chess), self-driving cars, robotics, dynamic pricing.
@@ -107,36 +107,18 @@ An **agent** takes actions in an **environment**, gets **rewards or penalties**,
 
 ### 0.4 The Training Loop — How Models Learn
 
-```
- ┌──────────────────────────────────────────────────────────────┐
- │                    THE TRAINING LOOP                         │
- │                                                              │
- │   ┌─────────────┐                                           │
- │   │ Input batch  │  (64 emails with features)               │
- │   └──────┬──────┘                                           │
- │          ▼                                                   │
- │   ┌─────────────┐                                           │
- │   │ Model makes  │  ("this is 73% spam")                    │
- │   │ prediction   │                                           │
- │   └──────┬──────┘                                           │
- │          ▼                                                   │
- │   ┌─────────────┐                                           │
- │   │ Compare to   │  (actual label was "not spam")           │
- │   │ true label   │                                           │
- │   └──────┬──────┘                                           │
- │          ▼                                                   │
- │   ┌─────────────┐                                           │
- │   │ Calculate    │  (loss = 0.73, that's bad!)              │
- │   │ loss (error) │                                           │
- │   └──────┬──────┘                                           │
- │          ▼                                                   │
- │   ┌─────────────┐                                           │
- │   │ Adjust       │  (gradient descent: nudge weights        │
- │   │ weights      │   so next time prediction is closer)     │
- │   └──────┬──────┘                                           │
- │          │                                                   │
- │          └──────── repeat for every batch in every epoch ───┘
- └──────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["Input Batch\n(64 emails with features)"] --> B["Model Predicts\n('73% spam')"]
+    B --> C["Compare to True Label\n(actual: 'not spam')"]
+    C --> D["Calculate Loss\n(loss = 0.73 — bad!)"]
+    D --> E["Adjust Weights\n(gradient descent)"]
+    E -->|"repeat for every\nbatch in every epoch"| A
+    style A fill:#2563eb,color:#fff
+    style B fill:#0d9488,color:#fff
+    style C fill:#d97706,color:#fff
+    style D fill:#dc2626,color:#fff
+    style E fill:#059669,color:#fff
 ```
 
 **Analogy**: Learning to shoot free throws.
@@ -154,31 +136,33 @@ An **agent** takes actions in an **environment**, gets **rewards or penalties**,
 | **Good fit** | Model captures real patterns | Studying all chapters and understanding the concepts | High accuracy on both training and test data |
 | **Overfitting** | Model memorizes training data, fails on new | Memorizing exact practice exam answers but failing on new questions | High accuracy on training, *low* on test data |
 
-```
- Underfitting          Good Fit              Overfitting
- ────────────          ────────              ───────────
-     .  .                .  .                   .  .
-   .      .            .    .                .        .
-  ──────────          .      .             .    .  .    .
-  (straight line)      .    .           .  .        .  .
-   too simple          (smooth curve)    (wiggly — memorized)
-                       just right          too complex
+```mermaid
+flowchart LR
+    subgraph Underfitting
+        U["Straight line\nToo simple\nMisses patterns"]
+    end
+    subgraph Good Fit
+        G["Smooth curve\nJust right\nCaptures real patterns"]
+    end
+    subgraph Overfitting
+        O["Wiggly curve\nToo complex\nMemorized noise"]
+    end
+    style U fill:#dc2626,color:#fff
+    style G fill:#059669,color:#fff
+    style O fill:#dc2626,color:#fff
 ```
 
 ### 0.6 Train / Validation / Test Split
 
-```
- All your labeled data
- ┌────────────────────────────────────────────────────────────┐
- │                                                            │
- │  ┌──────────────────┐ ┌──────────────┐ ┌────────────────┐ │
- │  │   Training Set   │ │  Validation  │ │   Test Set     │ │
- │  │      70%         │ │    15%       │ │     15%        │ │
- │  │                  │ │              │ │                │ │
- │  │  Model learns    │ │ Tune hyper-  │ │ Final grade    │ │
- │  │  patterns here   │ │ parameters   │ │ (only once!)   │ │
- │  └──────────────────┘ └──────────────┘ └────────────────┘ │
- └────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph "All Your Labeled Data"
+        A["Training Set\n70%\nModel learns here"] --> B["Validation Set\n15%\nTune hyperparams"]
+        B --> C["Test Set\n15%\nFinal grade — once!"]
+    end
+    style A fill:#2563eb,color:#fff
+    style B fill:#d97706,color:#fff
+    style C fill:#059669,color:#fff
 ```
 
 | Set | Purpose | When used | Analogy |
@@ -189,27 +173,21 @@ An **agent** takes actions in an **environment**, gets **rewards or penalties**,
 
 ### 0.7 End-to-End ML Pipeline (The Big Picture)
 
-```
- ┌──────────┐   ┌──────────────┐   ┌───────────┐   ┌──────────────┐
- │ Raw Data  │──►│   Feature     │──►│  Train /   │──►│   Model      │
- │ (logs,    │   │  Engineering  │   │  Val / Test│   │  Training     │
- │  events,  │   │  (clean,      │   │  Split     │   │  (learn       │
- │  tables)  │   │   transform)  │   │            │   │   weights)    │
- └──────────┘   └──────────────┘   └───────────┘   └──────┬───────┘
-                                                           │
-         ┌─────────────────────────────────────────────────┘
-         ▼
- ┌──────────────┐   ┌──────────────┐   ┌───────────────┐   ┌──────────┐
- │ Offline Eval  │──►│  A/B Test     │──►│  Production    │──►│ Monitor  │
- │ (test set     │   │  (live users, │   │  Deployment    │   │ & Retrain│
- │  metrics)     │   │   real data)  │   │  (serve        │   │ (drift,  │
- │               │   │               │   │   predictions) │   │  decay)  │
- └──────────────┘   └──────────────┘   └───────────────┘   └──────────┘
-                                                                  │
-                                  ┌───────────────────────────────┘
-                                  │ feedback loop
-                                  ▼
-                            back to Raw Data
+```mermaid
+flowchart LR
+    A["Raw Data\n(logs, events)"] --> B["Feature\nEngineering"]
+    B --> C["Train/Val/Test\nSplit"]
+    C --> D["Model\nTraining"]
+    D --> E["Offline\nEval"]
+    E --> F["A/B Test\n(live users)"]
+    F --> G["Production\nDeployment"]
+    G --> H["Monitor\n& Retrain"]
+    H -.->|feedback loop| A
+    style A fill:#2563eb,color:#fff
+    style D fill:#d97706,color:#fff
+    style E fill:#0d9488,color:#fff
+    style G fill:#059669,color:#fff
+    style H fill:#7c3aed,color:#fff
 ```
 
 > **Key insight**: ML is not "train once and deploy." It is a continuous loop of data → train → evaluate → deploy → monitor → retrain.
@@ -242,50 +220,40 @@ An **agent** takes actions in an **environment**, gets **rewards or penalties**,
 
 ### 1.3 Core difference — why it matters
 
-```
-CPU cores (few, fast, sequential)
-──────────────────────────────────
-  Core 0 ▓▓▓▓▓▓▓▓
-  Core 1 ▓▓▓▓▓▓▓▓
-  ...
-  Core N ▓▓▓▓▓▓▓▓     (tens of cores)
-
-GPU cores (many, slower per-core, massively parallel)
-──────────────────────────────────
-  SM 0  ░░░░░░░░░░░░░░░░░░░░░░░░
-  SM 1  ░░░░░░░░░░░░░░░░░░░░░░░░
-  ...
-  SM N  ░░░░░░░░░░░░░░░░░░░░░░░░  (thousands of cores)
+```mermaid
+flowchart LR
+    subgraph CPU["CPU — Few cores, fast per-core"]
+        direction LR
+        C0["Core 0"] --- C1["Core 1"] --- CN["... Core N"]
+    end
+    subgraph GPU["GPU — Thousands of cores, massively parallel"]
+        direction LR
+        S0["SM 0"] --- S1["SM 1"] --- S2["SM 2"] --- SN["... SM N"]
+    end
+    style CPU fill:#2563eb,color:#fff
+    style GPU fill:#059669,color:#fff
 ```
 
 GPUs excel at the highly parallel matrix multiplications that dominate neural-network inference. CPUs are better when the workload is sequential, small, or I/O-bound.
 
 ### 1.4 Decision heuristic
 
-```
-                   ┌────────────────────────────┐
-                   │  Is the model > ~8 B params │
-                   │  or serving > ~50 QPS?      │
-                   └──────────┬─────────────────┘
-                        │                │
-                       YES              NO
-                        │                │
-                        ▼                ▼
-              ┌──────────────┐   ┌───────────────────┐
-              │  Use GPU(s)  │   │ Is it embeddings,  │
-              │              │   │ classification, or │
-              │              │   │ reranking?          │
-              └──────────────┘   └────────┬──────────┘
-                                    │           │
-                                   YES         NO
-                                    │           │
-                                    ▼           ▼
-                          ┌──────────────┐  ┌─────────────────┐
-                          │  Use CPU     │  │ Small quant LLM  │
-                          │  (ONNX, etc) │  │ + low traffic?   │
-                          └──────────────┘  │  → CPU            │
-                                            │ Otherwise → GPU   │
-                                            └─────────────────┘
+```mermaid
+flowchart TD
+    Q1{"Model > 8B params\nor > 50 QPS?"}
+    Q1 -->|YES| GPU["Use GPU"]
+    Q1 -->|NO| Q2{"Embeddings,\nclassification,\nor reranking?"}
+    Q2 -->|YES| CPU["Use CPU\n(ONNX, OpenVINO)"]
+    Q2 -->|NO| Q3{"Small quantized LLM\n+ low traffic?"}
+    Q3 -->|YES| CPU2["Use CPU\n(llama.cpp)"]
+    Q3 -->|NO| GPU2["Use GPU"]
+    style GPU fill:#059669,color:#fff
+    style GPU2 fill:#059669,color:#fff
+    style CPU fill:#2563eb,color:#fff
+    style CPU2 fill:#2563eb,color:#fff
+    style Q1 fill:#d97706,color:#fff
+    style Q2 fill:#d97706,color:#fff
+    style Q3 fill:#d97706,color:#fff
 ```
 
 ### 1.5 Practical rule of thumb
@@ -301,31 +269,30 @@ GPUs excel at the highly parallel matrix multiplications that dominate neural-ne
 
 ### 2.1 Five-layer metric stack
 
-```
- ┌──────────────────────────────────────────────────┐  ← closest to $$$
- │  Layer 1 — Business / Revenue                    │
- │  revenue uplift, margin, cost savings, LTV, churn│
- ├──────────────────────────────────────────────────┤
- │  Layer 2 — User Engagement & Product Outcomes    │
- │  CTR, completion rate, session length, retention │
- ├──────────────────────────────────────────────────┤
- │  Layer 3 — Model Quality                         │
- │  F1, AUC, NDCG, BLEU, hallucination rate         │
- ├──────────────────────────────────────────────────┤
- │  Layer 4 — Operational Reliability               │
- │  latency p99, uptime, throughput, error rate      │
- ├──────────────────────────────────────────────────┤
- │  Layer 5 — Risk / Trust / Safety                 │
- │  fairness, drift, toxicity, compliance, bias      │
- └──────────────────────────────────────────────────┘  ← foundational
+```mermaid
+block-beta
+    columns 1
+    L1["Layer 1 — Business / Revenue\nrevenue uplift, margin, cost savings, LTV, churn"]:1
+    L2["Layer 2 — User Engagement & Product\nCTR, completion rate, session length, retention"]:1
+    L3["Layer 3 — Model Quality\nF1, AUC, NDCG, BLEU, hallucination rate"]:1
+    L4["Layer 4 — Operational Reliability\nlatency p99, uptime, throughput, error rate"]:1
+    L5["Layer 5 — Risk / Trust / Safety\nfairness, drift, toxicity, compliance, bias"]:1
+    style L1 fill:#dc2626,color:#fff
+    style L2 fill:#d97706,color:#fff
+    style L3 fill:#2563eb,color:#fff
+    style L4 fill:#0d9488,color:#fff
+    style L5 fill:#64748b,color:#fff
 ```
 
 ### 2.2 Design metrics from business impact backward
 
-```
-Model Quality  →  Product Behavior  →  User Engagement  →  Revenue / Cost Impact
-     ▲                                                            │
-     └─────────── optimize here ◄───── measure here ◄────────────┘
+```mermaid
+flowchart RL
+    D["Revenue / Cost\nImpact"] -->|measure here| C["User\nEngagement"]
+    C --> B["Product\nBehavior"]
+    B -->|optimize here| A["Model\nQuality"]
+    style A fill:#2563eb,color:#fff
+    style D fill:#dc2626,color:#fff
 ```
 
 ### 2.3 North Star + leading indicators + guardrails
@@ -405,20 +372,15 @@ flowchart LR
 
 **Flow**:
 
-```
- Business stakeholder ──► Define objective
-         │
-         ▼
- Identify user journey ──► What decisions does the user make?
-         │
-         ▼
- Quantify scale ──► Expected traffic, data volume, growth
-         │
-         ▼
- Surface constraints ──► Latency SLA, compliance, compute budget
-         │
-         ▼
- State assumptions ──► Write them down, revisit later
+```mermaid
+flowchart TD
+    A["Business stakeholder"] --> B["Define objective"]
+    B --> C["Identify user journey\nWhat decisions does the user make?"]
+    C --> D["Quantify scale\nTraffic, data volume, growth"]
+    D --> E["Surface constraints\nLatency SLA, compliance, budget"]
+    E --> F["State assumptions\nWrite them down, revisit later"]
+    style A fill:#2563eb,color:#fff
+    style F fill:#059669,color:#fff
 ```
 
 > **Tip**: In an interview, spend the first 3–5 minutes here. Interviewers reward clarity and structured thinking.
@@ -513,16 +475,14 @@ Define where training data comes from and how labels are obtained.
 * Is there class imbalance? (e.g., 99.9% non-fraud, 0.1% fraud)
 * How fresh does the data need to be? (daily, hourly, real-time?)
 
-```
- Data Generation Pipeline
- ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
- │  Raw events   │──►│  Label        │──►│  Clean &      │
- │  (logs, DB,   │   │  assignment   │   │  validate     │
- │   streams)    │   │  (auto/human) │   │  (QA checks)  │
- └──────────────┘   └──────────────┘   └──────┬───────┘
-                                               │
-                                               ▼
-                                       Training dataset
+```mermaid
+flowchart LR
+    A["Raw events\n(logs, DB, streams)"] --> B["Label assignment\n(auto / human)"]
+    B --> C["Clean & validate\n(QA checks)"]
+    C --> D["Training dataset"]
+    style A fill:#2563eb,color:#fff
+    style B fill:#d97706,color:#fff
+    style D fill:#059669,color:#fff
 ```
 
 #### 4.2 Featurization
@@ -547,14 +507,14 @@ Define the features (inputs) the model will use.
 | **Feature drift** | Distribution of features shifts over time | Monitor distributions; retrain triggers |
 | **Missing values** | Some features unavailable for some users/items | Default values, imputation, or model handles nulls |
 
-```
- Feature Pipeline
- ┌──────────┐   ┌───────────────┐   ┌──────────────┐   ┌──────────┐
- │ Raw data  │──►│ Transform &   │──►│ Feature       │──►│ Model    │
- │ (events,  │   │ engineer      │   │ store         │   │ training │
- │  tables)  │   │ (clean, join, │   │ (online +     │   │          │
- │           │   │  embed, cross)│   │  offline)     │   │          │
- └──────────┘   └───────────────┘   └──────────────┘   └──────────┘
+```mermaid
+flowchart LR
+    A["Raw data\n(events, tables)"] --> B["Transform & engineer\n(clean, join, embed, cross)"]
+    B --> C["Feature store\n(online + offline)"]
+    C --> D["Model training"]
+    style A fill:#2563eb,color:#fff
+    style C fill:#d97706,color:#fff
+    style D fill:#059669,color:#fff
 ```
 
 #### 4.3 Model Training
@@ -572,24 +532,17 @@ Choose and justify the model architecture and training approach.
 
 **Interview flow — always start simple**:
 
-```
- Baseline (simple, fast)
- │  e.g., logistic regression + hand-crafted features
- │
- ▼
- Iterate on features
- │  e.g., add embeddings, cross-features, contextual signals
- │
- ▼
- Iterate on architecture
- │  e.g., move to deep model, multi-task, attention
- │
- ▼
- Iterate on training
- │  e.g., curriculum learning, hard-negative mining, distillation
- │
- ▼
- Offline evaluation → promote best → online A/B test
+```mermaid
+flowchart TD
+    A["Baseline\nlogistic regression + hand-crafted features"] --> B["Iterate on features\nadd embeddings, cross-features, context"]
+    B --> C["Iterate on architecture\ndeep model, multi-task, attention"]
+    C --> D["Iterate on training\ncurriculum learning, hard negatives, distillation"]
+    D --> E["Offline eval → promote best → A/B test"]
+    style A fill:#64748b,color:#fff
+    style B fill:#2563eb,color:#fff
+    style C fill:#0d9488,color:#fff
+    style D fill:#d97706,color:#fff
+    style E fill:#059669,color:#fff
 ```
 
 > **Interview tip**: Interviewers reward candidates who start with a baseline and clearly articulate *why* each iteration is an improvement.
@@ -610,30 +563,38 @@ In a multi-component system, different components optimize for different metrics
 
 **Real-world example — e-commerce recommendation system**:
 
-```
- ┌───────────────────┐        ┌───────────────────┐        ┌────────────────┐
- │ Candidate Gen      │───────►│ Ranking Model      │───────►│ Business Rules  │
- │                    │        │                    │        │ & Filtering     │
- │ Metric: Recall@500 │        │ Metric: NDCG@20    │        │ Metric: safety  │
- │ "Did we fetch all  │        │ "Are the best ones │        │ compliance rate │
- │  relevant items?"  │        │  at the top?"      │        │                │
- └───────────────────┘        └───────────────────┘        └────────────────┘
+```mermaid
+flowchart LR
+    A["Candidate Gen\nMetric: Recall@500\n'Did we fetch all\nrelevant items?'"] --> B["Ranking Model\nMetric: NDCG@20\n'Are the best ones\nat the top?'"]
+    B --> C["Business Rules\n& Filtering\nMetric: safety\ncompliance rate"]
+    style A fill:#2563eb,color:#fff
+    style B fill:#d97706,color:#fff
+    style C fill:#059669,color:#fff
 ```
 
 #### 4.5 Tie Component Metrics to the Overall System Metric
 
 Each component metric should **connect upward** to the North Star business metric.
 
-```
- Component metrics            System metric           Business metric
- ──────────────────           ─────────────           ───────────────
- Recall@500 (retrieval)  ─┐
-                          ├──► Overall NDCG@10  ─────► Revenue per session
- NDCG@20 (ranking)      ─┘
-
- Precision (safety)      ────► Compliance rate  ─────► Trust / brand safety
-
- Log loss (calibration)  ────► Predicted CTR    ─────► Ad revenue accuracy
+```mermaid
+flowchart LR
+    R1["Recall@500\n(retrieval)"] --> S1["Overall NDCG@10"]
+    R2["NDCG@20\n(ranking)"] --> S1
+    S1 --> B1["Revenue\nper session"]
+    P1["Precision\n(safety)"] --> S2["Compliance rate"]
+    S2 --> B2["Trust / brand safety"]
+    L1["Log loss\n(calibration)"] --> S3["Predicted CTR"]
+    S3 --> B3["Ad revenue accuracy"]
+    style R1 fill:#2563eb,color:#fff
+    style R2 fill:#2563eb,color:#fff
+    style S1 fill:#d97706,color:#fff
+    style B1 fill:#dc2626,color:#fff
+    style P1 fill:#0d9488,color:#fff
+    style S2 fill:#d97706,color:#fff
+    style B2 fill:#dc2626,color:#fff
+    style L1 fill:#7c3aed,color:#fff
+    style S3 fill:#d97706,color:#fff
+    style B3 fill:#dc2626,color:#fff
 ```
 
 **Key interview point**: When asked "what metric would you use?", don't just say "F1" — explain:
@@ -671,20 +632,15 @@ Common deep-dive topics:
 
 **Approach**:
 
-```
- Pick component
-       │
-       ▼
- Explain current design
-       │
-       ▼
- Identify bottleneck or risk
-       │
-       ▼
- Propose improvement + tradeoff
-       │
-       ▼
- Discuss failure modes & mitigations
+```mermaid
+flowchart TD
+    A["Pick component"] --> B["Explain current design"]
+    B --> C["Identify bottleneck or risk"]
+    C --> D["Propose improvement + tradeoff"]
+    D --> E["Discuss failure modes & mitigations"]
+    style A fill:#2563eb,color:#fff
+    style C fill:#d97706,color:#fff
+    style E fill:#dc2626,color:#fff
 ```
 
 ---
@@ -835,14 +791,17 @@ Why? Because:
 
 ### 5.2 Funnel view
 
-```
- Impressions ──► Clicks ──► Conversions ──► Revenue
-     │              │             │              │
-     │              │             │              │
-    CPM            CPC           CPA           ROAS
-     │              │             │
-     └──── CTR ─────┘             │
-                    └──── CVR ────┘
+```mermaid
+flowchart LR
+    A["Impressions\n(CPM)"] --> B["Clicks\n(CPC)"]
+    B --> C["Conversions\n(CPA)"]
+    C --> D["Revenue\n(ROAS)"]
+    A ---|CTR| B
+    B ---|CVR| C
+    style A fill:#64748b,color:#fff
+    style B fill:#2563eb,color:#fff
+    style C fill:#d97706,color:#fff
+    style D fill:#059669,color:#fff
 ```
 
 ### 5.3 Why this matters for ML interviews
@@ -865,29 +824,21 @@ Offline metrics evaluate a trained model on data it has *never seen during train
 
 ### 6.2 End-to-end pipeline
 
-```
- Raw data
-    │
-    ▼
- Label / annotate
-    │
-    ▼
- ┌───────────────────────────────────────────────────┐
- │ Split into Train / Validation / Test              │
- │                                                   │
- │  ┌──────────┐  ┌────────────┐  ┌───────────────┐ │
- │  │  Train    │  │ Validation │  │    Test        │ │
- │  │  70%      │  │    15%     │  │    15%         │ │
- │  └──────────┘  └────────────┘  └───────────────┘ │
- └───────────────────────────────────────────────────┘
-    │                    │                │
-    ▼                    ▼                ▼
- Train model      Tune hyperparams   Final eval
-                                         │
-                                         ▼
-                                   Compute metrics
-                                   (accuracy, F1,
-                                    NDCG, RMSE, etc.)
+```mermaid
+flowchart TD
+    A["Raw data"] --> B["Label / annotate"]
+    B --> C["Split into Train / Validation / Test"]
+    C --> D["Train 70%"]
+    C --> E["Validation 15%"]
+    C --> F["Test 15%"]
+    D --> G["Train model"]
+    E --> H["Tune hyperparams"]
+    F --> I["Final eval"]
+    I --> J["Compute metrics\n(accuracy, F1, NDCG, RMSE)"]
+    style D fill:#2563eb,color:#fff
+    style E fill:#d97706,color:#fff
+    style F fill:#059669,color:#fff
+    style J fill:#7c3aed,color:#fff
 ```
 
 ### 6.3 Why use offline evaluation?
@@ -911,28 +862,19 @@ Offline metrics evaluate a trained model on data it has *never seen during train
 
 ### 6.5 Where offline eval fits in the system design flow
 
-```
- ┌──────────────────┐
- │ Build candidate   │
- │ model             │
- └────────┬─────────┘
-          │
-          ▼
- ┌──────────────────┐     FAIL ──► iterate / discard
- │ Offline eval      │
- │ (test set)        │
- └────────┬─────────┘
-          │ PASS
-          ▼
- ┌──────────────────┐     FAIL ──► rollback
- │ Online A/B test   │
- │ (live traffic)    │
- └────────┬─────────┘
-          │ PASS
-          ▼
- ┌──────────────────┐
- │ Full rollout      │
- └──────────────────┘
+```mermaid
+flowchart TD
+    A["Build candidate model"] --> B{"Offline eval\n(test set)"}
+    B -->|PASS| C{"Online A/B test\n(live traffic)"}
+    B -->|FAIL| X1["Iterate / discard"]
+    C -->|PASS| D["Full rollout"]
+    C -->|FAIL| X2["Rollback"]
+    style A fill:#2563eb,color:#fff
+    style B fill:#d97706,color:#fff
+    style C fill:#0d9488,color:#fff
+    style D fill:#059669,color:#fff
+    style X1 fill:#dc2626,color:#fff
+    style X2 fill:#dc2626,color:#fff
 ```
 
 **Analogy**: Offline eval = driving simulator. Online eval = real road test. You would never skip the simulator, but you would never certify a driver *only* on the simulator.
@@ -947,14 +889,23 @@ Offline metrics evaluate a trained model on data it has *never seen during train
 
 #### Confusion matrix — the foundation
 
-```
-                        Predicted
-                   Positive    Negative
-              ┌────────────┬────────────┐
- Actual  Pos  │     TP     │     FN     │
-              ├────────────┼────────────┤
- Actual  Neg  │     FP     │     TN     │
-              └────────────┴────────────┘
+```mermaid
+flowchart LR
+    subgraph "Confusion Matrix"
+        direction TB
+        subgraph "Predicted Positive"
+            TP["TP\nTrue Positive"]
+            FP["FP\nFalse Positive"]
+        end
+        subgraph "Predicted Negative"
+            FN["FN\nFalse Negative"]
+            TN["TN\nTrue Negative"]
+        end
+    end
+    style TP fill:#059669,color:#fff
+    style TN fill:#059669,color:#fff
+    style FP fill:#dc2626,color:#fff
+    style FN fill:#dc2626,color:#fff
 ```
 
 #### Metrics
@@ -1127,28 +1078,29 @@ The best explanations:
 
 ### Metrics cheat sheet
 
-```
- ┌──────────────────────────────────────────────────┐
- │  North Star                                      │
- │  One business metric (revenue, conversion, etc.) │
- ├──────────────────────────────────────────────────┤
- │  Leading Indicators                              │
- │  Engagement + model quality                      │
- │  (CTR, F1, NDCG, completion rate, etc.)          │
- ├──────────────────────────────────────────────────┤
- │  Guardrails                                      │
- │  Operations + trust                              │
- │  (latency, uptime, drift, fairness, safety)      │
- └──────────────────────────────────────────────────┘
+```mermaid
+block-beta
+    columns 1
+    NS["North Star\nOne business metric (revenue, conversion, etc.)"]:1
+    LI["Leading Indicators\nEngagement + model quality (CTR, F1, NDCG, completion rate)"]:1
+    GR["Guardrails\nOperations + trust (latency, uptime, drift, fairness, safety)"]:1
+    style NS fill:#dc2626,color:#fff
+    style LI fill:#d97706,color:#fff
+    style GR fill:#059669,color:#fff
 ```
 
 ### Quick reference: which metric where?
 
-```
- "Is the model technically better?"     → Offline metrics
- "Did it help real users?"              → Online metrics
- "Is anything breaking?"                → Guardrail metrics
- "Are we making money?"                 → North Star
+```mermaid
+flowchart LR
+    Q1["Is the model technically better?"] --> A1["Offline metrics"]
+    Q2["Did it help real users?"] --> A2["Online metrics"]
+    Q3["Is anything breaking?"] --> A3["Guardrail metrics"]
+    Q4["Are we making money?"] --> A4["North Star"]
+    style A1 fill:#2563eb,color:#fff
+    style A2 fill:#0d9488,color:#fff
+    style A3 fill:#d97706,color:#fff
+    style A4 fill:#dc2626,color:#fff
 ```
 
 ---
