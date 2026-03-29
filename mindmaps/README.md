@@ -444,6 +444,167 @@ mindmap
 
 ---
 
+## Metrics Explainer — What Each Metric Actually Means
+
+> If you only read one section, read this. Every metric explained in plain English with real-world analogies.
+
+### Classification Metrics Explained
+
+```mermaid
+mindmap
+  root((Classification\nMetrics Explained))
+    Accuracy
+      What: Out of ALL predictions how many were correct
+      Formula: Correct / Total
+      Analogy: Your overall test score
+      Gotcha: Useless if 99% of data is one class
+      Example: 95% accuracy on fraud but only 1% is fraud - misleading
+    Precision
+      What: When you PREDICTED positive how often were you RIGHT
+      Formula: True Positives / All Predicted Positives
+      Analogy: When you say YES how often are you correct
+      High precision means: Few false alarms
+      Use when: False alarms are expensive
+      Example: Spam filter - marking real email as spam annoys users
+      Example: Fraud alert - blocking legit purchases loses revenue
+    Recall
+      What: Out of all ACTUAL positives how many did you CATCH
+      Formula: True Positives / All Actual Positives
+      Analogy: What percentage of fish in the lake did your net catch
+      High recall means: You miss very few real cases
+      Use when: Missing a case is dangerous
+      Example: Cancer screening - missing cancer can kill someone
+      Example: Fraud - missing fraud means money lost
+    F1 Score
+      What: Single score balancing Precision AND Recall
+      Formula: 2 x Precision x Recall / Precision + Recall
+      Analogy: Overall grade combining accuracy and coverage
+      Use when: You need ONE number for Precision vs Recall
+      Why harmonic mean: Penalizes if either is very low
+      Example: F1 of 0.8 means good balance of catching and accuracy
+    AUC-ROC
+      What: How well model SEPARATES positives from negatives across ALL thresholds
+      Score range: 0.5 = random guess to 1.0 = perfect
+      Analogy: If you randomly pick one positive and one negative how often does model rank the positive higher
+      Use when: You want threshold-independent quality measure
+      Example: Fraud model AUC 0.95 means it almost always ranks fraud higher than non-fraud
+    PR-AUC
+      What: Like AUC but focused on the POSITIVE class
+      Use when: Data is very imbalanced like 0.1% fraud
+      Why better than AUC-ROC: AUC-ROC can look good even when model is bad at rare class
+      Example: Fraud detection with 1 in 1000 fraud rate
+```
+
+### Regression Metrics Explained
+
+```mermaid
+mindmap
+  root((Regression\nMetrics Explained))
+    MAE - Mean Absolute Error
+      What: Average of how far off each prediction is
+      Formula: Average of absolute differences
+      Analogy: On average how many minutes late or early is the bus
+      Units: Same as your target - dollars, minutes etc
+      Use when: You want simple interpretable error
+      Example: MAE of $15K on house prices means on average off by $15K
+    RMSE - Root Mean Square Error
+      What: Like MAE but PUNISHES big errors more
+      Formula: Square root of average of squared errors
+      Analogy: Like MAE but a prediction off by 100 is punished MORE than ten predictions off by 10
+      Use when: Big errors are much worse than small ones
+      Example: ETA off by 60 min is much worse than 6 ETAs off by 10 min
+      Key insight: RMSE is always bigger than or equal to MAE
+    MAPE - Mean Absolute Percentage Error
+      What: Average percentage you are off by
+      Formula: Average of percentage errors
+      Analogy: Are you off by 5% or 50%
+      Use when: Relative accuracy matters more than absolute
+      Example: Predicting demand - being off by 10 units matters differently for 100 units vs 10K units
+      Gotcha: Breaks when actual value is zero
+    R-squared
+      What: How much of the variation in data your model explains
+      Range: 0 = no better than guessing the average to 1 = perfect
+      Analogy: How much of the exam answers could you explain vs just guessing
+      Use when: You want to compare model power across different datasets
+```
+
+### Ranking Metrics Explained
+
+```mermaid
+mindmap
+  root((Ranking\nMetrics Explained))
+    NDCG - Normalized Discounted Cumulative Gain
+      What: Are the BEST items near the TOP of your list
+      Key idea: Position matters - relevant item at position 1 counts more than at position 10
+      Analogy: Google search - you want the best result FIRST not buried on page 3
+      Score range: 0 to 1 where 1 = perfect ranking
+      The Discount: Each position gets less credit - position 1 gets full credit position 10 gets very little
+      Example: Two search results both show 3 relevant items but the one with relevant items at positions 1-2-3 scores higher than one at positions 5-8-10
+      Used in: Search ranking, recommendation feeds, ad ranking
+    Precision at K
+      What: Of the top K items you showed how many were actually relevant
+      Analogy: You recommended 10 movies - how many did the user actually like
+      Example: Precision@10 = 0.7 means 7 of your top 10 recommendations were good
+      Used in: Top-N recommendations, search results page
+    Recall at K
+      What: Of ALL relevant items how many appeared in your top K
+      Analogy: There are 50 good movies - how many did your top 10 list include
+      Example: Recall@10 = 0.2 means your top 10 captured 20% of all good items
+      Used in: Candidate retrieval - did we fetch enough good items
+    MRR - Mean Reciprocal Rank
+      What: How quickly does the FIRST relevant result appear
+      Formula: 1 divided by position of first relevant result averaged across queries
+      Analogy: When you google something how far down do you scroll to find the answer
+      Example: First relevant at position 1 = score 1.0 and at position 3 = score 0.33
+      Used in: QA systems, autocomplete, single-answer search
+    MAP - Mean Average Precision
+      What: Average quality of ranking across many different queries
+      Analogy: Not just one search query but your AVERAGE ranking quality across thousands of searches
+      Used in: Information retrieval benchmarks, search engine evaluation
+```
+
+### NLP and GenAI Metrics Explained
+
+```mermaid
+mindmap
+  root((NLP / GenAI\nMetrics Explained))
+    BLEU
+      What: How much does model output OVERLAP with a reference translation word by word
+      Analogy: Comparing your essay to the answer key - how many phrases match
+      Range: 0 to 1 where higher is better
+      Used in: Machine translation
+      Gotcha: Can miss that two different phrasings mean the same thing
+      Example: Reference is Bonjour and model says Hello - BLEU would be 0 even though meaning is same
+    ROUGE
+      What: How much of the REFERENCE summary appears in the model output
+      Difference from BLEU: BLEU checks precision and ROUGE checks recall
+      Analogy: Did the summary capture all the key points from the original
+      Variants: ROUGE-1 is unigrams and ROUGE-L is longest common subsequence
+      Used in: Text summarization
+    Exact Match
+      What: Does the predicted answer EXACTLY equal the correct answer
+      Very strict: One word different means score is 0
+      Used in: QA where there is one correct answer like a date or name
+      Example: Correct answer is Paris - if model says Paris France then EM is 0
+    Groundedness
+      What: Is every claim in the answer SUPPORTED by the source document
+      Analogy: Did the student only write facts from the textbook or make things up
+      Used in: RAG systems, enterprise chatbots, any LLM using retrieved documents
+      Example: Source says founded in 1998 - grounded answer says 1998 - hallucinated answer says 1995
+    Hallucination Rate
+      What: How often does the model INVENT facts not in the source
+      Why critical: Users trust AI answers - wrong facts cause real damage
+      Used in: Any production LLM deployment
+      Example: Model says CEO is John Smith when source never mentions any CEO
+    BERTScore
+      What: Semantic similarity using embeddings - do they MEAN the same thing even if words differ
+      Advantage over BLEU: Catches paraphrases and synonyms
+      Example: happy and joyful would score high even though different words
+      Used in: Open-ended generation, paraphrase detection
+```
+
+---
+
 ## Section 9: Interview Cheat Sheet
 
 ```mermaid
