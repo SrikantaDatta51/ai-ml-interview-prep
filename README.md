@@ -535,6 +535,69 @@ flowchart LR
 
 > **Key insight**: Each stage reduces the candidate set. Early stages optimize for **recall** (don't miss relevant items), later stages optimize for **precision/NDCG** (put the best items first).
 
+##### 🔶 Deep Dive — The Ranker (Main Component)
+
+The **Ranker** is the most important component in the search pipeline — it directly determines what the user sees.
+
+```mermaid
+flowchart TD
+    A["① Gets 500-1000 documents\nfrom candidate retrieval"] --> B["② Generates a SCORE\nfor each document\nfor the given query"]
+    B --> C["③ Ranks all documents\nby score (highest first)"]
+    C --> D["④ Logs features + metadata\n(request ID, session ID,\nuser ID, timestamps)"]
+    D --> E["⑤ Returns ranked list\nto filter → user"]
+    style A fill:#2563eb,color:#fff
+    style B fill:#d97706,color:#fff
+    style C fill:#0d9488,color:#fff
+    style D fill:#7c3aed,color:#fff
+    style E fill:#059669,color:#fff
+```
+
+**What the Ranker does, step by step:**
+
+| Step | Action | Why it matters |
+|------|--------|---------------|
+| **①** | Receives ~500-1000 candidate documents for this query | These came from the fast retrieval stage |
+| **②** | Computes a relevance score for each `(query, document)` pair | Uses 50+ features: text match, embedding similarity, user history, item popularity, freshness |
+| **③** | Sorts all documents by score, highest first | The user sees top 10-20; position #1 gets 10x more clicks than #10 |
+| **④** | Logs everything: features used, scores, request/session IDs | This logged data becomes **tomorrow's training data** — critical for the feedback loop |
+| **⑤** | Returns the ranked list downstream | Filters may still remove items (policy, stock), then user sees final results |
+
+**Ranker Metrics — Offline vs Online:**
+
+```mermaid
+flowchart LR
+    subgraph OFFLINE["📋 Offline Metrics (measured on test set)"]
+        P["Precision@K\nOf the top K results,\nhow many are relevant?"]
+        N["NDCG@K\nAre the BEST results\nat the very top?"]
+    end
+    subgraph ONLINE["🌐 Online Metrics (measured on live users)"]
+        MRR["MRR\nReciprocal rank of\nfirst click"]
+        SL["Session Length\nHow long does user\nstay after searching?"]
+        CTR["CTR\nDid users click\nthe results?"]
+    end
+    P --> MRR
+    N --> CTR
+    MRR --> BIZ["Revenue\nper search"]
+    SL --> BIZ
+    CTR --> BIZ
+    style P fill:#2563eb,color:#fff
+    style N fill:#2563eb,color:#fff
+    style MRR fill:#d97706,color:#fff
+    style SL fill:#d97706,color:#fff
+    style CTR fill:#d97706,color:#fff
+    style BIZ fill:#dc2626,color:#fff
+```
+
+| Metric | Type | What it tells you | Example |
+|--------|------|-------------------|---------|
+| **Precision@K** | Offline | Of the top K ranked results, how many are actually relevant? | Precision@10 = 0.7 → 7 of top 10 are relevant |
+| **NDCG@K** | Offline | Are the most relevant results at the very top positions? | NDCG@10 = 0.85 → relevant items are near the top |
+| **MRR** | Online | How quickly does the user find what they want? (rank of first click) | User clicks result #2 → MRR = 0.5 |
+| **Session length** | Online | Is the user engaged or did they abandon? | Avg 3.2 min after search → good engagement |
+| **CTR** | Online | Do users actually click the results we show? | CTR = 35% on top 3 results |
+
+> **Why logging matters**: Step ④ is often overlooked but it's what makes the system **self-improving**. Every search creates a training example: `(query, document, features, rank_shown, did_user_click)`. This feeds back into the offline training path.
+
 ##### 🔵 Offline Training Path (how the model gets better over time)
 
 | Step | Component | What it does | Frequency | Real-world example |
